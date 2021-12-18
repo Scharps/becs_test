@@ -1,3 +1,5 @@
+use std::time::{Duration, Instant};
+
 use becs::World;
 
 use minifb::{Key, Window, WindowOptions};
@@ -16,10 +18,12 @@ fn main() {
     let mut world = World::new();
     let entity = world.new_entity();
     world.add_component_to_entity(entity, Position(50.0, 100.0));
-    world.add_component_to_entity(entity, Speed(1.5));
+    world.add_component_to_entity(entity, Speed(200.0));
 
     let width = 20;
     let height = 40;
+
+    let mut timing = Timing::new();
 
     let (mut w, mut a, mut s, mut d, mut shift) = (false, false, false, false, false);
     while window.is_open() {
@@ -37,6 +41,7 @@ fn main() {
         // Display buffer
         window.update_with_buffer(&buffer, WIDTH, HEIGHT).unwrap();
 
+        let delta = timing.delta().as_secs_f32();
         // Update position
         let zip = positions.iter_mut().zip(speeds.iter());
         for (position, speed) in
@@ -44,16 +49,16 @@ fn main() {
         {
             let (mut x, mut y) = (0.0, 0.0);
             if w {
-                y += -1.0 * speed.0;
+                y += -1.0 * speed.0 * delta;
             }
             if a {
-                x += -1.0 * speed.0;
+                x += -1.0 * speed.0 * delta;
             }
             if s {
-                y += 1.0 * speed.0;
+                y += 1.0 * speed.0 * delta;
             }
             if d {
-                x += 1.0 * speed.0;
+                x += 1.0 * speed.0 * delta;
             }
 
             position.0 += x;
@@ -95,5 +100,23 @@ fn draw_as_rect(buffer: &mut [u32], position: &Position, width: usize, height: u
                 buffer[index as usize] = 0xFFFFFF;
             }
         }
+    }
+}
+
+struct Timing {
+    last_reset: Instant,
+}
+
+impl Timing {
+    fn new() -> Self {
+        Self {
+            last_reset: Instant::now(),
+        }
+    }
+
+    fn delta(&mut self) -> Duration {
+        let delta = self.last_reset.elapsed();
+        self.last_reset = Instant::now();
+        delta
     }
 }
