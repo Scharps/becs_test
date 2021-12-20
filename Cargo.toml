@@ -7,7 +7,8 @@ edition = "2018"
 
 [dependencies]
 minifb = "0.20.0"
+profiling = { version = "*",features = ["profile-with-tracy"]}
 
 [dependencies.becs]
 git = "https://github.com/Scharps/Becs.git"
-branch = "dev"
+branch = "feature/system_fn"

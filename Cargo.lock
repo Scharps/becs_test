@@ -46,7 +46,7 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 [[package]]
 name = "becs"
 version = "0.1.0"
-source = "git+https://github.com/Scharps/Becs.git?branch=dev#ad72ca6075ec07d5fa88da142cd4a37389d1d9c8"
+source = "git+https://github.com/Scharps/Becs.git?branch=feature/system_fn#99813c97436770c0e7230947acd784f51f80cd47"
 
 [[package]]
 name = "becs_render"
@@ -54,6 +54,7 @@ version = "0.1.0"
 dependencies = [
  "becs",
  "minifb",
+ "profiling",
 ]
 
 [[package]]
@@ -432,6 +433,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "profiling"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9926767b8b8244d7b6b64546585121d193c3d0b4856ccd656b7bfa9deb91ab6a"
+dependencies = [
+ "profiling-procmacros",
+ "tracy-client",
+]
+
+[[package]]
+name = "profiling-procmacros"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f899bc77213a95c5b7272c1f9889c1948eacafe06b035e976abbcadbb34fe517"
+dependencies = [
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -638,6 +659,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d326610f408c7a4eb6f51c37c330e496b08506c9457c9d34287ecc38809fb060"
 dependencies = [
  "unicode-width",
+]
+
+[[package]]
+name = "tracy-client"
+version = "0.12.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "62c0e37fbf87980abd5c35c3d86fd150c5ed349c3ae90959ba1877c799388203"
+dependencies = [
+ "tracy-client-sys",
+]
+
+[[package]]
+name = "tracy-client-sys"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6226e4e77f0d46ce7ebb0a4b1daa82790035248b75bbf605b932a1d7b3b22b6d"
+dependencies = [
+ "cc",
 ]
 
 [[package]]

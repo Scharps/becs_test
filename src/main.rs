@@ -1,94 +1,68 @@
-use std::time::{Duration, Instant};
-
 use becs::World;
+use ecs::{configure_ecs, movement_system, Position};
+use minifb::{Window, WindowOptions};
+use std::{
+    sync::mpsc::{channel, Sender},
+    thread,
+    time::{Duration, Instant},
+};
 
-use minifb::{Key, Window, WindowOptions};
+mod ecs;
 
 const WIDTH: usize = 1200;
 const HEIGHT: usize = 360;
 
-struct Position(f32, f32);
-struct Speed(f32);
-
 fn main() {
-    let mut buffer: Vec<u32> = vec![0; WIDTH * HEIGHT];
+    let (tx, rx) = channel::<Vec<u32>>();
 
-    let mut window = Window::new("Test ECS", WIDTH, HEIGHT, WindowOptions::default()).unwrap();
-
-    let mut world = World::new();
-    let entity = world.new_entity();
-    world.add_component_to_entity(entity, Position(50.0, 100.0));
-    world.add_component_to_entity(entity, Speed(200.0));
-
-    let width = 20;
-    let height = 40;
-
-    let mut timing = Timing::new();
-
-    let (mut w, mut a, mut s, mut d, mut shift) = (false, false, false, false, false);
-    while window.is_open() {
-        let mut positions = world.borrow_component_vec_mut::<Position>().unwrap();
-        let speeds = world.borrow_component_vec::<Speed>().unwrap();
-
-        // Capture input
-        capture_input(&mut w, &window, &mut a, &mut s, &mut d, &mut shift);
-
-        // Draw to buffer
-        for position in positions.iter().filter_map(|position| position.as_ref()) {
-            draw_as_rect(&mut buffer, position, width, height);
+    thread::spawn(move || {
+        let mut window = Window::new("Test ECS", WIDTH, HEIGHT, WindowOptions::default()).unwrap();
+        while window.is_open() {
+            let buffer = rx.recv().unwrap();
+            window.update_with_buffer(&buffer, WIDTH, HEIGHT).unwrap();
         }
+    });
 
-        // Display buffer
-        window.update_with_buffer(&buffer, WIDTH, HEIGHT).unwrap();
+    let mut world = configure_ecs();
+    let render_system = render_with_buffer(tx);
 
-        let delta = timing.delta().as_secs_f32();
-        // Update position
-        let zip = positions.iter_mut().zip(speeds.iter());
-        for (position, speed) in
-            zip.filter_map(|(position, speed)| Some((position.as_mut()?, speed.as_ref()?)))
+    let mut current_time = Instant::now();
+    let dt = Duration::from_secs_f64(1.0 / 60.0).as_secs_f32();
+    let mut accumilator = 0.0;
+    let mut new_frame = true;
+    loop {
+        let new_time = Instant::now();
+        let frame_time = (new_time - current_time).as_secs_f32();
+        current_time = new_time;
+
+        accumilator += frame_time;
+
+        while accumilator >= dt {
+            movement_system(&mut world, dt);
+            accumilator -= dt;
+            new_frame = true;
+        }
+        if new_frame {
+            render_system(&mut world);
+            new_frame = false;
+        }
+    }
+}
+
+fn render_with_buffer(sender: Sender<Vec<u32>>) -> Box<dyn Fn(&mut World)> {
+    Box::new(move |world| {
+        let mut buffer = vec![0; WIDTH * HEIGHT];
+
+        let positions = world.borrow_component_vec::<Position>().unwrap();
+        for position in positions
+            .iter()
+            .filter_map(|position| Some(position.as_ref()?))
         {
-            let (mut x, mut y) = (0.0, 0.0);
-            if w {
-                y += -1.0 * speed.0 * delta;
-            }
-            if a {
-                x += -1.0 * speed.0 * delta;
-            }
-            if s {
-                y += 1.0 * speed.0 * delta;
-            }
-            if d {
-                x += 1.0 * speed.0 * delta;
-            }
-
-            position.0 += x;
-            position.1 += y;
+            draw_as_rect(&mut buffer, position, 50, 50)
         }
 
-        // Clear
-        clear_buffer(&mut buffer);
-    }
-}
-
-fn capture_input(
-    w: &mut bool,
-    window: &Window,
-    a: &mut bool,
-    s: &mut bool,
-    d: &mut bool,
-    shift: &mut bool,
-) {
-    *w = window.is_key_down(Key::W);
-    *a = window.is_key_down(Key::A);
-    *s = window.is_key_down(Key::S);
-    *d = window.is_key_down(Key::D);
-    *shift = window.is_key_down(Key::LeftShift);
-}
-
-fn clear_buffer(buffer: &mut Vec<u32>) {
-    for p in buffer.iter_mut() {
-        *p = 0;
-    }
+        sender.send(buffer).unwrap();
+    })
 }
 
 fn draw_as_rect(buffer: &mut [u32], position: &Position, width: usize, height: usize) {
@@ -100,23 +74,5 @@ fn draw_as_rect(buffer: &mut [u32], position: &Position, width: usize, height: u
                 buffer[index as usize] = 0xFFFFFF;
             }
         }
-    }
-}
-
-struct Timing {
-    last_reset: Instant,
-}
-
-impl Timing {
-    fn new() -> Self {
-        Self {
-            last_reset: Instant::now(),
-        }
-    }
-
-    fn delta(&mut self) -> Duration {
-        let delta = self.last_reset.elapsed();
-        self.last_reset = Instant::now();
-        delta
     }
 }
